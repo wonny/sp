@@ -1,0 +1,27 @@
+   
+   public static void main(String[] args) {
+      // TODO Auto-generated method stub
+
+
+      File file = new File("./INFILE/LOCATION.TXT");
+      if(file.exists()) {
+         BufferedReader inFile = null;
+         try {
+            inFile = new BufferedReader(new FileReader(file));
+            String sLine = null;
+            
+            while( (sLine = inFile.readLine()) != null ) {
+               if (sLine.equals("xxxx")) {
+                  system.out.println("sLine : " + sLine);
+                  break;
+               }
+            }
+            
+         } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+         }
+      }
+
+
+   }
