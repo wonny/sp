@@ -1,0 +1,186 @@
+
+public class RunManager {
+   static TreeMap<Integer, ArrayList> mapBus;
+   static ArrayList<StationInfo> arrStation;
+   
+   private static final int THREAD_CNT = 1000;
+   private static ExecutorService threadPool = Executors.newFixedThreadPool(THREAD_CNT);
+   
+   public static void main(String[] args) throws IOException {
+      mapBus = new TreeMap<>();
+      arrStation = new ArrayList<>();
+      
+      File station = new File("./INFILE/STATION.TXT");
+      if(station.exists()) {
+         BufferedReader inFile = null;
+         BufferedReader inStation = null;
+         try {
+            inStation = new BufferedReader(new FileReader(station));
+            
+            String sLine = null;
+            String stationLine = null;
+
+
+            String busInfo = "";
+            String stationInfo = "";
+
+
+            while( (stationLine = inStation.readLine()) != null ) {
+               stationInfo = stationLine;
+               String[] tmp = stationInfo.split("#");
+               
+               int speedPerSec = Integer.parseInt(tmp[2])*1000/3600;
+               StationInfo si = new StationInfo(tmp[0], Integer.parseInt(tmp[1]), speedPerSec);
+               arrStation.add(si);
+               System.out.println(stationLine); //읽어들인 문자열을 출력 합니다. 
+            }
+            
+            
+         } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+         }
+      }
+      
+      
+      ServerSocket serverSocket = new ServerSocket(9876);
+      String line = "";
+      int count = 0;
+      while(true) {
+         Socket socket = serverSocket.accept();
+         threadPool.execute(new ConnectionWrap(socket, count++));
+      }
+      
+   }
+      
+
+
+   public synchronized static boolean isCollectLine(String busInfo, Str) {
+      String[] info = busInfo.split("#");
+      if (info.length>1) {
+         return true;
+      } else {
+         int key = getSecTime(info[0]);
+         ArrayList<BusInfo> prepre = mapBus.get(key-1);
+         ArrayList<BusInfo> pre = mapBus.get(key);
+         
+         Collections.sort(prepre, new Comparator<BusInfo>() {
+               @Override
+               public int compare(BusInfo s1, BusInfo s2) {
+                   return s1.getBusName().compareTo(s2.getBusName());
+               }
+           });
+         
+         Collections.sort(pre, new Comparator<BusInfo>() {
+               @Override
+               public int compare(BusInfo s1, BusInfo s2) {
+                   return s1.getBusName().compareTo(s2.getBusName());
+               }
+           });
+         
+         ArrayList<BusInfo> bi = new ArrayList<>();
+         for (int i=0;i<pre.size();i++) {
+            BusInfo pp = prepre.get(i);
+            BusInfo p = pre.get(i);
+            
+            String name = p.getBusName();
+            int position = p.getBusPosition()+(p.getBusPosition()-pp.getBusPosition());
+            int speed = p.getBusPosition()-pp.getBusPosition();
+            BusInfo tmp = new BusInfo(name, position, speed);
+            bi.add(tmp);
+         }
+         Collections.sort(bi);
+         mapBus.put(key+1, bi);
+         return false;
+      }
+      
+   }
+
+
+
+   public synchronized static void saveBusInfo(String busInfo) {
+      ArrayList<BusInfo> arrBus = new ArrayList<>();
+      
+      String[] info = busInfo.split("#");
+      
+      // info[0] 는 시간 정보이고, 1부터가 버스 정보임.
+      for(int i=1;i<info.length;i++) {
+         String[] bd = info[i].split(",");
+         BusInfo bi = new BusInfo(bd[0], Integer.parseInt(bd[1]));
+         arrBus.add(bi);
+      }
+      Collections.sort(arrBus);
+      mapBus.put(getSecTime(info[0]), arrBus);
+   }
+
+
+   
+   public synchronized static String getFiveDigit(int length) {
+      return String.format("%05d", length);
+   }
+
+
+   
+   public synchronized static int getSecTime(String t) {
+      String[] time = t.split(":");
+      int sec = Integer.parseInt(time[0]) * 3600 + Integer.parseInt(time[1]) * 60 + Integer.parseInt(time[2]);
+      return sec;
+   }
+
+
+   
+   public synchronized static String getStringTime(int sec) {
+      String time = String.format("%02d:%02d:%02d", sec / 3600, (sec % 3600) / 60, sec % 60);
+      return time;
+   }
+   
+
+
+}
+
+
+// 소켓 처리용 래퍼 클래스입니다.
+class ConnectionWrap implements Runnable{
+
+
+   private Socket socket = null;
+   private int mCount = 0;
+
+
+   public ConnectionWrap(Socket socket, int count) {
+      this.socket = socket;
+      this.mCount = count;
+   }
+
+
+   @Override
+   public void run() {
+
+
+      try {
+         OutputStream output = socket.getOutputStream();
+         PrintWriter writer = new PrintWriter(output, true);
+         writer.println(new Date().toString());
+         
+         InputStream input = socket.getInputStream();
+         BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+//         System.out.println("####### msg : " + reader.readLine());
+         String line = "";
+         while( (line = reader.readLine()) != null ) {
+            System.out.println("count : " + mCount + " :: " + line);
+            if (RunManager.isCollectLine(line)) {
+               RunManager.saveBusInfo(line); //읽어들인 문자열을 출력 합니다. 
+            }
+         }
+      } catch (IOException e) {
+         e.printStackTrace();
+      } finally {
+         try {
+            System.out.println("####### socket.close()");
+            socket.close(); // 반드시 종료합니다.
+         } catch (IOException e) {
+            e.printStackTrace();
+         }
+      }
+   }
+}
