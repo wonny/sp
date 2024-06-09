@@ -1,0 +1,19 @@
+
+      for(String t : result) {
+         System.out.println(t);
+      }
+
+
+       ProcessBuilder b = new ProcessBuilder("SIGNAGE");
+       b.redirectErrorStream(true);
+       Process p = b.start();
+
+
+       BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()));
+
+
+       for (String cmd : result) {
+          writer.write(cmd + "\n");
+          writer.flush();
+       }
+//p.waitFor();
