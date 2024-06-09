@@ -1,0 +1,16 @@
+    public static void saveFile(String[] data) throws IOException {
+      FileWriter fw = new FileWriter("./OUTFILE/PREPOST.TXT");
+
+      // append 시 고려
+      //Path filePath = Paths.get("someFile.txt");
+      //if (!Files.exists(filePath)) {
+      //    Files.createFile(filePath);
+      //}
+      //Files.write(filePath, "Text to be added".getBytes(), StandardOpenOption.APPEND);      
+
+      
+      for (int i = 0; i < data.length; i++) {
+        fw.write(data[i] + "\n");
+      }
+      fw.close();
+   }
